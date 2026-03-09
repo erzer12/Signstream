@@ -136,7 +136,10 @@
     "model_type": "sign_gru_v3",
     "hidden_size": 192,
     "num_layers": 2,
-    "best_val_acc": 0.8959,
+    "best_val_acc": 1.0,
     "cv_acc_mean": 0.9719,
-    "cv_acc_std": 0.0025
+    "cv_acc_std": 0.0025,
+    "baseline_acc": 0.2222,
+    "finetuned": true,
+    "personal_samples": 45
 }
