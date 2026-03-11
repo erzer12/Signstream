@@ -41,6 +41,7 @@ export interface InferenceResult {
     topLabel: string
     topProb: number
     topK: Array<{ label: string; prob: number }>
+    inferenceLatency: number
 }
 
 /**
@@ -58,7 +59,10 @@ export async function runInference(
     const feeds: Record<string, ort.Tensor> = {}
     feeds[session.inputNames[0]] = tensor
 
+    const startMs = performance.now()
     const results = await session.run(feeds)
+    const inferenceLatency = performance.now() - startMs
+
     const logits = results[session.outputNames[0]].data as Float32Array
 
     // Softmax
@@ -76,5 +80,6 @@ export async function runInference(
         topLabel: topK[0].label,
         topProb: topK[0].prob,
         topK,
+        inferenceLatency,
     }
 }

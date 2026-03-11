@@ -746,3 +746,116 @@ input[type=range]::-webkit-slider-thumb {
     transform: rotate(360deg);
   }
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   Caption Buffer Styles
+   ════════════════════════════════════════════════════════════════════════════ */
+
+.caption-buffer-container {
+  margin-top: auto;
+}
+
+.caption-buffer {
+  display: flex;
+  flex-direction: column;
+  padding: 16px;
+}
+
+.caption-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.caption-title {
+  font-size: 11px;
+  color: #475569;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 500;
+}
+
+.caption-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.caption-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  background: transparent;
+  border: 1px solid transparent;
+}
+
+.caption-btn svg {
+  width: 12px;
+  height: 12px;
+}
+
+.speak-btn {
+  color: #3b82f6;
+  background: rgba(59, 130, 246, 0.1);
+  border-color: rgba(59, 130, 246, 0.2);
+}
+
+.speak-btn:hover:not(:disabled) {
+  background: rgba(59, 130, 246, 0.2);
+}
+
+.speak-btn.speaking {
+  color: #facc15;
+  background: rgba(250, 204, 21, 0.1);
+  border-color: rgba(250, 204, 21, 0.2);
+  animation: pulse-dot 1.5s ease-in-out infinite;
+}
+
+.clear-btn {
+  color: #64748b;
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.clear-btn:hover:not(:disabled) {
+  color: #f87171;
+  background: rgba(248, 113, 113, 0.1);
+  border-color: rgba(248, 113, 113, 0.2);
+}
+
+.caption-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.caption-text-area {
+  min-height: 80px;
+  max-height: 160px;
+  overflow-y: auto;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.03);
+  padding: 12px;
+}
+
+.caption-content {
+  font-size: 24px;
+  line-height: 1.4;
+  font-weight: 500;
+  color: #e2e8f0;
+  margin: 0;
+  word-break: break-word;
+}
+
+.caption-placeholder {
+  font-size: 16px;
+  color: #475569;
+  margin: 0;
+  font-style: italic;
+}

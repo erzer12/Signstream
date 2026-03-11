@@ -7,6 +7,7 @@ import HistoryFeed from '@/components/HistoryFeed'
 import StatusBar from '@/components/StatusBar'
 import Settings from '@/components/Settings'
 import RecordMode from '@/components/RecordMode'
+import CaptionBuffer from '@/components/CaptionBuffer'
 
 export default function App() {
   const videoRef = useRef<HTMLVideoElement | null>(null)
@@ -16,6 +17,7 @@ export default function App() {
   const [threshold, setThreshold] = useState(0.45)
   const [recordOpen, setRecordOpen] = useState(false)
   const [signNames, setSignNames] = useState<string[]>([])
+  const [captionText, setCaptionText] = useState('')
 
   // Fetch sign names from model meta once on mount
   useEffect(() => {
@@ -34,6 +36,32 @@ export default function App() {
   )
 
   const { state, clearHistory, latestFrameRef } = useInference(videoRef, canvasRef, running, threshold)
+
+  // Accumulate captions when a new stable prediction arrives
+  useEffect(() => {
+    if (state.history.length === 0) return
+    const latest = state.history[0]
+    
+    // Simple debounce/deduplication based on the prediction timestamp
+    // The history array creates a new entry only when the stabilized sign changes.
+    setCaptionText(prev => {
+        const sign = latest.label.toLowerCase()
+        if (sign === 'space') {
+            return prev + ' '
+        } else if (sign === 'clear') {
+            // Delete the last word (everything after the last space)
+            const parts = prev.trimEnd().split(' ')
+            parts.pop() // Remove the last part
+            return parts.length > 0 ? parts.join(' ') + ' ' : ''
+        } else if (sign === 'del' || sign === 'backspace') {
+            return prev.slice(0, -1)
+        } else if (sign.length === 1 && /^[a-z]$/i.test(sign)) {
+            // Append single letters
+            return prev + sign
+        }
+        return prev
+    })
+  }, [state.history])
 
   return (
     <div className="app-shell">
@@ -79,13 +107,23 @@ export default function App() {
           <StatusBar
             status={state.status}
             errorMsg={state.errorMsg}
+            e2eLatency={state.e2eLatency}
+            onnxLatency={state.onnxLatency}
             onRecordClick={() => setRecordOpen(true)}
           />
-          <CameraView
-            onVideoReady={handleVideoReady}
-            landmarks={state.landmarks}
-            isRunning={running}
-          />
+          <div style={{ position: 'relative', width: '100%', flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
+            <CameraView
+              onVideoReady={handleVideoReady}
+              landmarks={state.landmarks}
+              isRunning={running}
+            />
+            <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: 16 }}>
+              <CaptionBuffer 
+                text={captionText} 
+                onClear={() => setCaptionText('')} 
+              />
+            </div>
+          </div>
         </div>
 
         <div className="col-panel">

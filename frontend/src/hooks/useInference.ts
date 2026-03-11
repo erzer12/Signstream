@@ -24,10 +24,12 @@ export interface InferenceState {
     handedness: string | null
     history: PredEntry[]
     landmarks: HandLandmarkerResult['landmarks'] | null
+    e2eLatency: number
+    onnxLatency: number
 }
 
 const STABILITY_FRAMES = 3
-const MAX_HISTORY = 10
+const MAX_HISTORY = 500
 let _idCounter = 0
 
 export function useInference(
@@ -45,6 +47,8 @@ export function useInference(
         handedness: null,
         history: [],
         landmarks: null,
+        e2eLatency: 0,
+        onnxLatency: 0,
     })
 
     const metaRef = useRef<ModelMeta | null>(null)
@@ -138,9 +142,11 @@ export function useInference(
 
         if (bufferRef.current.isFull() && !bufferRef.current.isMostlyEmpty() && !isInferring.current) {
             isInferring.current = true
+            const e2eStartMs = performance.now()
             const tensor = bufferRef.current.toTensor()
             runInference(tensor, meta.seq_length, meta.n_features, meta.sign_names)
                 .then(res => {
+                    const e2eLatency = performance.now() - e2eStartMs
                     if (res.topProb < confidenceThreshold) return
                     if (res.topLabel === stabilizer.current.label) {
                         stabilizer.current.count++
@@ -156,6 +162,8 @@ export function useInference(
                             confidence: res.topProb,
                             topK: res.topK,
                             handedness: dominant?.handedness ?? s.handedness,
+                            e2eLatency,
+                            onnxLatency: res.inferenceLatency,
                             history: shouldAddHistory
                                 ? [{ id: ++_idCounter, label: res.topLabel, prob: res.topProb, ts: Date.now() }, ...s.history].slice(0, MAX_HISTORY)
                                 : s.history,

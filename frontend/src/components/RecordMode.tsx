@@ -59,6 +59,8 @@ export default function RecordMode({ signNames, latestFrameRef, onClose }: Props
     const [countdown, setCountdown] = useState(3)
     const [captures, setCaptures] = useState<CaptureEntry[]>([])
     const [lastTakeCount, setLastTakeCount] = useState(0)
+    const [previewing, setPreviewing] = useState<boolean>(false)
+    const [previewFrameIdx, setPreviewFrameIdx] = useState(0)
 
     // Refs to avoid stale closures inside rAF / intervals
     const selectedSignRef = useRef<string | null>(selectedSign)
@@ -149,8 +151,28 @@ export default function RecordMode({ signNames, latestFrameRef, onClose }: Props
     const handleRecord = useCallback(() => {
         if (phase !== 'idle' && phase !== 'saved') return
         if (!selectedSign) return
+        setPreviewing(false) // Exit preview if recording again
         startCountdown()
     }, [phase, selectedSign, startCountdown])
+
+    const startPreview = useCallback(() => {
+        if (rawFramesRef.current.length === 0) return
+        setPreviewing(true)
+        setPreviewFrameIdx(0)
+        
+        let frame = 0
+        const tick = () => {
+            frame++
+            if (frame >= rawFramesRef.current.length) {
+                setPreviewing(false)
+                rafRef.current = null
+                return
+            }
+            setPreviewFrameIdx(frame)
+            rafRef.current = requestAnimationFrame(tick)
+        }
+        rafRef.current = requestAnimationFrame(tick)
+    }, [])
 
     // ── Export ────────────────────────────────────────────────────────────────
     const handleExport = useCallback(() => {
@@ -283,8 +305,33 @@ export default function RecordMode({ signNames, latestFrameRef, onClose }: Props
                         {/* Status box */}
                         <div className={`rm-info-box${phase === 'recording' ? ' rm-info-recording' : ''}`}>
                             <span style={{ fontSize: 18 }}>{info.icon}</span>
-                            <span style={{ fontSize: 13, color: '#94a3b8', lineHeight: 1.5 }}>{info.text}</span>
+                            <span style={{ fontSize: 13, color: '#94a3b8', lineHeight: 1.5, flex: 1 }}>{info.text}</span>
+                            {phase === 'saved' && rawFramesRef.current.length > 0 && (
+                                <button
+                                    onClick={startPreview}
+                                    disabled={previewing}
+                                    style={{
+                                        fontSize: 11, background: 'rgba(59,130,246,0.1)', color: '#60a5fa',
+                                        border: '1px solid rgba(59,130,246,0.3)', borderRadius: 6,
+                                        padding: '4px 8px', cursor: 'pointer', whiteSpace: 'nowrap'
+                                    }}
+                                >
+                                    {previewing ? 'Playing...' : '▶ Preview Last Take'}
+                                </button>
+                            )}
                         </div>
+
+                        {/* Preview Canvas layer */}
+                        {previewing && (
+                            <div style={{
+                                width: '100%', height: 180, background: '#07090f',
+                                borderRadius: 12, border: '1px solid rgba(255,255,255,0.08)',
+                                position: 'relative', overflow: 'hidden', display: 'flex',
+                                alignItems: 'center', justifyContent: 'center'
+                            }}>
+                                <PlaybackCanvas frameData={rawFramesRef.current[previewFrameIdx]} />
+                            </div>
+                        )}
 
                         {/* Record button */}
                         <button
@@ -316,5 +363,55 @@ export default function RecordMode({ signNames, latestFrameRef, onClose }: Props
                 </div>
             </div>
         </div>
+    )
+}
+
+// ── Mini Canvas Player for normalized float data ──────────────────────────────
+function PlaybackCanvas({ frameData }: { frameData: number[] }) {
+    const canvasRef = useRef<HTMLCanvasElement>(null)
+
+    useEffect(() => {
+        const canvas = canvasRef.current
+        if (!canvas || !frameData || frameData.length < 63) return
+        const ctx = canvas.getContext('2d')!
+        ctx.clearRect(0, 0, canvas.width, canvas.height)
+
+        const CONNECTIONS = [
+            [0, 1], [1, 2], [2, 3], [3, 4],
+            [0, 5], [5, 6], [6, 7], [7, 8],
+            [0, 9], [9, 10], [10, 11], [11, 12],
+            [0, 13], [13, 14], [14, 15], [15, 16],
+            [0, 17], [17, 18], [18, 19], [19, 20],
+            [5, 9], [9, 13], [13, 17],
+        ]
+
+        // Transform normalized data [-1, 1] back to canvas coordinates [0, width/height]
+        // Note: the Y axis is flipped in normal canvas operations vs mediapipe.
+        const LMs: { x: number, y: number }[] = []
+        for (let i = 0; i < 21; i++) {
+            const x = (frameData[i * 3] + 1) / 2 * canvas.width
+            const y = (frameData[i * 3 + 1] + 1) / 2 * canvas.height
+            LMs.push({ x, y })
+        }
+
+        ctx.strokeStyle = 'rgba(45, 212, 191, 0.7)'
+        ctx.lineWidth = 2
+        for (const [a, b] of CONNECTIONS) {
+            ctx.beginPath()
+            ctx.moveTo(canvas.width - LMs[a].x, LMs[a].y)
+            ctx.lineTo(canvas.width - LMs[b].x, LMs[b].y)
+            ctx.stroke()
+        }
+
+        for (let i = 0; i < LMs.length; i++) {
+            ctx.beginPath()
+            ctx.arc(canvas.width - LMs[i].x, LMs[i].y, i === 0 ? 5 : 3, 0, Math.PI * 2)
+            ctx.fillStyle = i === 0 ? '#7c3aed' : '#2dd4bf'
+            ctx.fill()
+        }
+    }, [frameData])
+
+    return (
+        <canvas ref={canvasRef} width={240} height={180} style={{ width: 240, height: 180 }} />
     )
 }

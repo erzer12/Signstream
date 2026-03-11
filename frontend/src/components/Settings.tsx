@@ -26,7 +26,13 @@ export default function Settings({ threshold, onThresholdChange, isRunning, onTo
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <span style={{ fontSize: 13, color: '#94a3b8' }}>Min Confidence</span>
-                    <span style={{ fontSize: 12, fontFamily: 'JetBrains Mono, monospace', color: '#2dd4bf' }}>{pct}%</span>
+                    <span style={{ 
+                        fontSize: 12, 
+                        fontFamily: 'JetBrains Mono, monospace', 
+                        color: threshold < 0.40 ? '#f87171' : threshold < 0.60 ? '#facc15' : '#4ade80'
+                    }}>
+                        {pct}%
+                    </span>
                 </div>
                 <input
                     type="range"
@@ -34,11 +40,12 @@ export default function Settings({ threshold, onThresholdChange, isRunning, onTo
                     value={threshold}
                     onChange={e => onThresholdChange(parseFloat(e.target.value))}
                     style={{
-                        background: `linear-gradient(90deg, #2dd4bf ${pct}%, rgba(255,255,255,.08) ${pct}%)`,
+                        background: `linear-gradient(90deg, ${threshold < 0.40 ? '#f87171' : threshold < 0.60 ? '#facc15' : '#4ade80'} ${pct}%, rgba(255,255,255,.08) ${pct}%)`,
                     }}
                 />
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: '#334155' }}>
-                    <span>Sensitive</span>
+                    <span>Noisy</span>
+                    <span>Sweet Spot</span>
                     <span>Strict</span>
                 </div>
             </div>

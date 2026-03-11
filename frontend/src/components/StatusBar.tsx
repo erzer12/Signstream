@@ -3,6 +3,8 @@ import type { PipelineStatus } from '@/hooks/useInference'
 interface Props {
     status: PipelineStatus
     errorMsg: string | null
+    e2eLatency?: number
+    onnxLatency?: number
     onRecordClick: () => void
 }
 
@@ -13,13 +15,27 @@ const LABELS: Record<PipelineStatus, string> = {
     error: 'Error',
 }
 
-export default function StatusBar({ status, errorMsg, onRecordClick }: Props) {
+export default function StatusBar({ status, errorMsg, e2eLatency, onnxLatency, onRecordClick }: Props) {
     return (
         <div className="status-bar">
             <span className={`dot dot-${status}`} />
             <span style={{ color: status === 'tracking' ? '#2dd4bf' : undefined }}>
                 {LABELS[status]}
             </span>
+            
+            {status === 'tracking' && e2eLatency !== undefined && onnxLatency !== undefined && (
+                <span style={{
+                    fontSize: 10,
+                    color: '#64748b',
+                    fontFamily: 'JetBrains Mono, monospace',
+                    background: 'rgba(255,255,255,0.05)',
+                    padding: '2px 6px',
+                    borderRadius: 4,
+                    marginLeft: 8
+                }}>
+                    E2E {Math.round(e2eLatency)}ms · ONNX {Math.round(onnxLatency)}ms
+                </span>
+            )}
 
             {status === 'error' && errorMsg && (
                 <span style={{
